@@ -3,7 +3,6 @@ package com.green.security.sign;
 import com.green.security.CommonRes;
 import com.green.security.config.security.JwtTokenProvider;
 import com.green.security.config.security.UserDetailsMapper;
-import com.green.security.config.security.model.MyUserDetails;
 import com.green.security.config.security.model.UserEntity;
 import com.green.security.config.security.model.UserTokenEntity;
 import com.green.security.sign.model.SignInResultDto;
@@ -12,7 +11,6 @@ import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.security.SecurityProperties;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -43,7 +41,7 @@ public class SignService {
             setSuccessResult(dto);
         } else {
             log.info("[getSignUpResult] 실패 처리 완료");
-            setFileResult(dto);
+            setFailResult(dto);
         }
         return dto;
     }
@@ -130,7 +128,7 @@ public class SignService {
         result.setMsg(CommonRes.SUCCESS.getMsg());
     }
 
-    private void setFileResult(SignUpResultDto result) {
+    private void setFailResult(SignUpResultDto result) {
         result.setSuccess(false);
         result.setCode(CommonRes.FAIL.getCode());
         result.setMsg(CommonRes.FAIL.getMsg());
