@@ -1,5 +1,6 @@
 package com.green.security.config.security;
 
+import com.green.security.config.RedisService;
 import com.green.security.config.security.model.MyUserDetails;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -26,18 +27,23 @@ public class JwtTokenProvider {
     public final Key ACCESS_KEY;
     public final Key REFRESH_KEY;
     public final String TOKEN_TYPE;
-    public final long ACCESS_TOKEN_VALID_MS = 3_600_000L; // 1000L * 60 * 60 -> 1시간
+    //public final long ACCESS_TOKEN_VALID_MS = 3_600_000L; // 1000L * 60 * 60 -> 1시간
+    public final long ACCESS_TOKEN_VALID_MS = 200_000L;
     public final long REFRESH_TOKEN_VALID_MS = 1_296_000_000L; // 1000L * 60 * 60 * 24 * 15 -> 15일
+    private final RedisService redisService;
 
+    @Autowired
     public JwtTokenProvider(@Value("${springboot.jwt.access-secret}") String accessSecretKey
                             , @Value("${springboot.jwt.refresh-secret}") String refreshSecretKey
-                            , @Value("${springboot.jwt.token-type}") String tokenType) {
+                            , @Value("${springboot.jwt.token-type}") String tokenType,
+                            RedisService redisService) {
         byte[] accessKeyBytes = Decoders.BASE64.decode(accessSecretKey);
         this.ACCESS_KEY = Keys.hmacShaKeyFor(accessKeyBytes);
 
         byte[] refreshKeyBytes = Decoders.BASE64.decode(refreshSecretKey);
         this.REFRESH_KEY = Keys.hmacShaKeyFor(refreshKeyBytes);
         this.TOKEN_TYPE = tokenType;
+        this.redisService = redisService;
     }
 
     public String generateJwtToken(String strIuser, List<String> roles, long token_valid_ms, Key key) {
@@ -82,8 +88,9 @@ public class JwtTokenProvider {
 
     public String resolveToken(HttpServletRequest req, String type) {
         log.info("JwtTokenProvider - resolveToken: HTTP 헤더에서 Token 값 추출");
-        String headerAuth = req.getHeader("Authorization");
-        return headerAuth == null ? null : headerAuth.substring(type.length()).trim();
+        String headerAuth = req.getHeader("authorization");
+        return headerAuth != null &&
+                headerAuth.startsWith(String.format("%s ", type)) ? headerAuth.substring(type.length()).trim() : null;
     }
 
     public Claims getClaims(String token, Key key) {
@@ -103,5 +110,14 @@ public class JwtTokenProvider {
             log.info("JwtTokenProvider - isValidateToken: 토큰 유효 체크 예외 발생");
             return false;
         }
+    }
+
+    public Long getTokenExpirationTime(String accessToken, Key accessKey) {
+        try {
+            return getClaims(accessToken, accessKey).getExpiration().getTime();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0L;
     }
 }

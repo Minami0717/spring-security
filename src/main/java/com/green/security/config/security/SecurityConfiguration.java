@@ -1,9 +1,11 @@
 package com.green.security.config.security;
 
+import com.green.security.config.RedisService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -15,32 +17,34 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @Configuration
 @RequiredArgsConstructor
 public class SecurityConfiguration {
-
     private final JwtTokenProvider jwtTokenProvider;
+    private final RedisService service;
 
     //webSecurityCustomizer를 제외한 모든 것, 시큐리티를 거친다. 보안과 연관
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity httpSecurity) throws Exception {
         httpSecurity.authorizeHttpRequests(authz ->
                     authz.requestMatchers(
-                                    "/sign-api/sign-in"
-                                    , "/sign-api/sign-up"
-                                    , "/sign-api/exception"
-
-                                    , "/swagger.html"
+                                      "/swagger.html"
                                     , "/swagger-ui/**"
                                     , "/v3/api-docs/**"
-                                    , "/static/imgs/**"
-                                    , "/static/js/**"
-                                    , "/static/css/**"
                                     , "/index.html"
                                     , "/"
+                                    , "/static/**"
+
+                                    , "/sign-api/sign-in"
+                                    , "/sign-api/sign-up"
+                                    , "/sign-api/exception"
+                                    , "/sign-api/otp"
+                                    , "/sign-api/otp-valid"
+
                                     , "/view/**"
                             ).permitAll()
                             .requestMatchers(HttpMethod.GET, "/sign-api/refresh-token").permitAll()
                             .requestMatchers(HttpMethod.GET, "/product/**").permitAll()
                             .requestMatchers("**exception**").permitAll()
                             .requestMatchers("/todo-api").hasAnyRole("USER", "ADMIN")
+                            .requestMatchers("sign-api/logout").hasAnyRole("USER", "ADMIN")
                             .anyRequest().hasRole("ADMIN")
                 ) //사용 권한 체크
         .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) //세션 사용 X
@@ -50,7 +54,7 @@ public class SecurityConfiguration {
                     except.accessDeniedHandler(new CustomAccessDeniedHandler());
                     except.authenticationEntryPoint(new CustomAuthenticationEntryPoint());
                 })
-                .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider), UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider, service), UsernamePasswordAuthenticationFilter.class);
 
         return httpSecurity.build();
     }

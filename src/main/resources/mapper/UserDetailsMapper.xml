@@ -11,10 +11,16 @@
     </insert>
 
     <select id="getByUid">
-        SELECT iuser, uid, upw, name, role
+        SELECT iuser, uid, upw, name, role, secret_key secretKey
         FROM t_user
         WHERE uid = #{uid}
     </select>
+
+    <update id="updSecretKey">
+        UPDATE t_user
+        SET secret_key = #{secretKey}
+        WHERE iuser = #{iuser}
+    </update>
 
 
     <!-- ///////////////////////////////////////// user_token /////////-->
